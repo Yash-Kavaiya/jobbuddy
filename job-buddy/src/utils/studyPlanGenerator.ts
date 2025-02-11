@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { StudyPlanData, StudyPlanInput } from '@/types/study-plan';
 
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
@@ -34,88 +35,63 @@ export interface StudyPlan {
   additionalResources: string[];
 }
 
-export async function generateStudyPlan(data: StudyPlanData): Promise<StudyPlan> {
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-  const prompt = `You are a study plan generator. Create a structured learning plan based on these requirements:
-
-Career Goals: ${data.goals}
-Job Description: ${data.jobDescription}
-Available Time: ${data.availableTime}
-Topics: ${data.topics}
-Learning Style: ${data.learningStyle}
-Current Level: ${data.currentLevel}
-
-Return ONLY a JSON object with this exact structure (no additional text or explanation):
-{
-  "weeklySchedule": [
-    {
-      "week": 1,
-      "topics": ["specific topic 1", "specific topic 2"],
-      "resources": [
+export async function generateStudyPlan(input: StudyPlanInput): Promise<StudyPlanData> {
+  try {
+    // This is a mock implementation. Replace with your actual AI/API call
+    const mockPlan: StudyPlanData = {
+      weeklySchedule: [
         {
-          "type": "video",
-          "links": ["https://example.com/resource1"],
-          "description": "Brief description of resource"
+          week: 1,
+          topics: [
+            "Introduction to the basics",
+            "Setting up development environment",
+            "Core concepts overview"
+          ]
+        },
+        {
+          week: 2,
+          topics: [
+            "Advanced topics",
+            "Best practices",
+            "Practical exercises"
+          ]
         }
       ],
-      "objectives": ["Clear objective 1", "Clear objective 2"],
-      "assessments": ["Specific assessment 1", "Specific assessment 2"]
-    }
-  ],
-  "estimatedCompletionTime": "X weeks",
-  "prerequisites": ["prerequisite 1", "prerequisite 2"],
-  "additionalResources": ["resource 1", "resource 2"]
-}`;
+      estimatedCompletionTime: "2 weeks",
+      prerequisites: [
+        "Basic programming knowledge",
+        "Understanding of core concepts"
+      ],
+      additionalResources: [
+        "Online documentation",
+        "Practice exercises",
+        "Community resources"
+      ]
+    };
 
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response.text();
-    
-    // Extract JSON from response
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error('Raw response:', response);
-      throw new Error('No valid JSON found in response');
-    }
-
-    const cleanJson = jsonMatch[0].trim();
-    
-    try {
-      const parsed = JSON.parse(cleanJson);
-      
-      // Validate the structure
-      const isValid = (
-        Array.isArray(parsed.weeklySchedule) &&
-        parsed.weeklySchedule.length > 0 &&
-        parsed.weeklySchedule.every((week: any) => (
-          typeof week.week === 'number' &&
-          Array.isArray(week.topics) &&
-          Array.isArray(week.resources) &&
-          Array.isArray(week.objectives) &&
-          Array.isArray(week.assessments)
-        )) &&
-        typeof parsed.estimatedCompletionTime === 'string' &&
-        Array.isArray(parsed.prerequisites) &&
-        Array.isArray(parsed.additionalResources)
-      );
-
-      if (!isValid) {
-        throw new Error('Invalid study plan structure');
-      }
-
-      return parsed;
-    } catch (parseError) {
-      console.error('Parse error:', parseError);
-      console.error('Clean JSON:', cleanJson);
-      throw new Error('Failed to parse study plan format');
-    }
+    return mockPlan;
   } catch (error) {
-    console.error('Generation error:', error);
-    throw new Error(
-      error instanceof Error 
-        ? `Study plan generation failed: ${error.message}`
-        : 'Failed to generate study plan'
-    );
+    console.error('Study plan generation error:', error);
+    throw new Error('Failed to generate study plan');
   }
+}
+
+export function validateStudyPlan(plan: any): plan is StudyPlanData {
+  if (!plan || typeof plan !== 'object') return false;
+  
+  const hasValidStructure = 'weeklySchedule' in plan &&
+    'estimatedCompletionTime' in plan &&
+    'prerequisites' in plan &&
+    'additionalResources' in plan;
+
+  if (!hasValidStructure) return false;
+
+  const hasValidWeeklySchedule = Array.isArray(plan.weeklySchedule) &&
+    plan.weeklySchedule.every((week: any) =>
+      week &&
+      typeof week.week === 'number' &&
+      Array.isArray(week.topics)
+    );
+
+  return hasValidWeeklySchedule;
 }
